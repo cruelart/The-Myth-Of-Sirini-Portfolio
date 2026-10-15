@@ -1,55 +1,37 @@
-# The Myth of Sirini — C# 코드 제출 자료
+# The Myth of Sirini — C# Source Portfolio
 
-Unity 6 기반 RPG 프로젝트에서 입력과 행동 상태 관리, 퀘스트 진행도 관리, 이펙트 풀링 구현을 선별했습니다. 각 파일은 The Myth of Sirini 프로젝트의 실제 C# 클래스 전체를 담고 있습니다.
+Unity 6와 C#으로 개발 중인 1인 개발 RPG 프로젝트의 대표 게임플레이 코드입니다. 플레이어 입력과 상태 전환, 몬스터 AI, 퀘스트 진행, 아이템 관리, 풀링 구현을 중심으로 구성했습니다.
 
-## 1. 플레이어 입력과 행동 상태 관리
+## 먼저 살펴볼 코드
 
-**문제:** 공격이나 회피 중의 입력을 일정 시간 보관하고, 현재 상태가 허용할 때 실행해야 합니다. 사망·피격처럼 우선 처리가 필요한 상태도 일반 입력과 함께 다뤄야 합니다.
+|기능|구현 내용|대표 파일|
+|-|-|-|
+|입력 버퍼와 상태 머신|선입력 수집, 유효 시간이 있는 요청 보관, 상태별 전환 허용 및 우선순위 처리|[PlayerInputBuffer](Assets/Script/PlayerScript/PlayerInput/PlayerInputBuffer/PlayerInputBuffer.cs), [PlayerStateMachine](Assets/Script/PlayerScript/PlayerStateMachine/PlayerStateMachine.cs)|
+|콤보와 무기 전환|애니메이션 이벤트에 따른 콤보 예약과 무기 전환|[NormalAttackState](Assets/Script/PlayerScript/PlayerStateMachine/PlayerState/NormalAttackState.cs), [PlayerWeaponController](Assets/Script/PlayerScript/PlayerController/PlayerWeaponController.cs)|
+|몬스터 AI|직접 구성한 행동 트리와 슬라임 행동, 드래곤의 전투 상태 및 리깅 연동|[Behavior\_Tree](Assets/Script/AiScript/Behavior_Tree.cs), [SlimeAIScript](Assets/Script/MonsterScript/Slime/Refacoring_Slime/SlimeAIScript.cs), [DragonGroundCombatState](Assets/Script/MonsterScript/Boss/Dragon/StateMachine/State/DragonGroundCombatState.cs)|
+|퀘스트 진행|퀘스트 정의와 플레이어 진행도 분리, 타깃별 요구사항 인덱스, 진행 이벤트|[PlayerQuestData](Assets/Script/PlayerScript/PlayerData/PlayerQuestData.cs), [QuestManager](Assets/Script/Quest/QuestManager/QuestManager.cs)|
+|인벤토리와 장비|아이템 정의와 인스턴스 분리, 장비 슬롯과 이벤트 연동|[Re\_Inventory](Assets/Script/PlayerScript/Inventory/Re_Inventory.cs), [EquipmentItemInstance](Assets/Script/Item/ItemData/new_itemForder/ItemDataBase/Instance/EquipmentItemInstance.cs)|
+|이펙트 재사용|종류별 Queue 보관, 재생과 반환, 파티클 종료 확인|[EffectPoolManager](Assets/Script/EffectPool/EffectPoolManager.cs), [PooledEffect](Assets/Script/EffectPool/PooledEffect.cs)|
+|아이템 드롭|몬스터 사망 이벤트와 드롭 테이블을 연동해 확률·수량을 결정하고 아이템 풀에서 배치|[DropManager](Assets/Script/Item/DropTable/Manager/DropManager.cs), [DropItemPoolManager](Assets/Script/Item/DropItem/DropItemPoolManager.cs)|
+|NPC 가중치 그래프 기반 이동|노드 기반 순찰 경로와 NavMesh 이동을 구성하고, 대화 상태에 따라 이동을 정지·재개|[WanderingTraderNav](Assets/Script/NpcScript/WanderingTraderNav.cs), [WanderingTraderAIController](Assets/Script/Npc/NpcAIController/WanderingTraderAIController.cs), [NavigationNode](Assets/Script/NaviScript/NavigationNode.cs)|
 
-**구성:**
+## 공개 범위
 
-- `PlayerInputReader`: 키 입력을 요청 이벤트로 전달
-- `PlayerInputBuffer`: 요청 종류, 스킬 인덱스, 만료 시간을 보관하고 만료된 요청 제거
-- `PlayerStateMachine`: 상태 전환 조건 검사, 일반 요청과 우선순위 요청 처리
-- `PlayerStateFactory`: 상태 인스턴스 구성과 조회
-- `PlayerState`: 상태별 생명주기와 전환 허용 규칙의 공통 인터페이스
-- `NormalAttackState`: 애니메이션 이벤트에 맞춘 다음 콤보 예약
-- `WeaponChangeState`, `PlayerWeaponController`: 무기 전환 상태와 무기 오브젝트 제어
+플레이어 상태 머신, 몬스터 AI, 퀘스트, 인벤토리 등 주요 게임플레이 구현과 관련 C# 코드를 공개합니다.
 
-**읽는 순서:** InputReader → InputBuffer → StateMachine → StateFactory → PlayerState → NormalAttackState.
 
-## 2. 퀘스트 정의와 플레이어 진행도 분리
 
-**문제:** 몬스터 처치나 아이템 수량 변경이 발생했을 때 관련 퀘스트의 요구사항을 갱신하고, UI와 NPC가 같은 진행 상태를 참조해야 합니다.
+모델, 텍스처, 애니메이션 등 외부 에셋은 포함하지 않은 코드 열람용 저장소이며, 이 저장소만으로 게임을 실행할 수는 없습니다.
 
-**구성:**
 
-- `QuestData`: 퀘스트 정의, 요구사항, 진행 데이터의 자료형
-- `PlayerQuestData`: 수락 가능·진행 중·완료 상태 관리와 타깃 ID별 요구사항 인덱스
-- `QuestManager`: 처치·인벤토리 이벤트를 진행 데이터에 전달하고 상태 변경을 UI에 알림
 
-**살펴볼 부분:** `RegisterQuestRequirements`, `UpdateQuestInProgress`, `AcceptQuest`, `CanCompleteQuest`.
+## 열람 안내
 
-요구사항 인덱스를 통해 관련 타깃의 퀘스트 요구사항을 조회하도록 구성했습니다. 세이브 파일을 불러왔을 때 진행 중 요구사항 인덱스를 재구성하는 흐름 등은 추가 점검이 필요한 부분입니다.
+주요 게임플레이 구현을 살펴볼 수 있는 C# 소스 코드 저장소입니다.
 
-## 3. 이펙트 풀링
+씬과 에셋 등 실행에 필요한 파일은 포함하지 않아, 이 저장소만으로 게임을 실행할 수는 없습니다.
 
-**문제:** 반복 사용하는 피격·스킬·레벨업 이펙트를 재사용하고, 파티클이 끝나면 반환해야 합니다.
 
-**구성:**
 
-- `EffectPoolManager`: 이펙트 종류별 Queue 생성, 재생 요청 및 반환
-- `PooledEffect`: 파티클 초기화, 고정 위치 또는 대상 추적 재생, 종료 확인 후 반환
+현재 개발 중인 프로젝트로, 드래곤 AI 등 일부 기능은 구현을 진행하고 있습니다.
 
-현재는 미리 정한 크기의 풀을 사용합니다. 풀이 비었을 때의 처리 정책과 확장 여부는 보완할 수 있는 부분입니다.
-
-## 범위와 환경
-
-- Unity 6000.0.59f2 / C#
-- 대표 C# 파일 13개를 원본 폴더 구조로 수록
-- 코드 검토를 위한 발췌 자료이며, 독립 실행용 Unity 프로젝트는 아님
-- 프로젝트의 다른 클래스, 씬 참조, Unity 이벤트·애니메이션 이벤트 설정은 이 발췌 자료에 포함하지 않음
-- 에셋스토어 코드, 모델, 텍스처, 애니메이션, 씬, 프리팹과 외부 라이브러리 파일은 포함하지 않음
-- 공개용 복사본에서 문자 인코딩, 빈 Unity 생명주기 콜백, 임시 진단 로그와 미사용 빈 코드 일부를 정리
-
-발췌 전 공개용 소스 묶음은 원본 프로젝트의 Unity 참조 라이브러리로 컴파일을 확인했습니다. 이 13개 파일만으로 컴파일하거나 게임을 실행할 수 있다는 의미는 아닙니다.
